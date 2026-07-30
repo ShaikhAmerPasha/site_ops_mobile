@@ -4,6 +4,10 @@ export function getList(doctype, opts = {}) {
 	return call('frappe.client.get_list', { doctype, ...opts })
 }
 
+export function getCount(doctype, filters = {}) {
+	return call('frappe.client.get_count', { doctype, filters })
+}
+
 export function getDoc(doctype, name) {
 	return call('frappe.client.get', { doctype, name })
 }
