@@ -1,5 +1,5 @@
 app_name = "site_ops_mobile"
-app_title = "Site Ops Mobile"
+app_title = "Site Procure"
 app_publisher = "Zohra Orphanage"
 app_description = "Mobile-first PWA for site engineers"
 app_email = "erp@zohraorphanage.org"
@@ -15,7 +15,7 @@ add_to_apps_screen = [
 	{
 		"name": "site_ops_mobile",
 		"logo": "/assets/site_ops_mobile/manifest/icon-192.png",
-		"title": "Site Ops Mobile",
+		"title": "Site Procure",
 		"route": "/site_ops_mobile",
 	}
 ]

@@ -8,20 +8,40 @@
 				<div class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-sm font-bold text-white">
 					S
 				</div>
-				<h1 class="text-base font-semibold text-gray-900">Site Ops</h1>
+				<h1 class="text-base font-semibold text-gray-900">Site Procure</h1>
 			</div>
-			<div class="flex items-center gap-3">
-				<div class="flex h-7 w-7 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-600">
-					{{ initials }}
-				</div>
+			<div ref="menuRoot" class="relative">
 				<button
 					type="button"
-					class="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 active:bg-gray-200"
-					title="Log out"
-					@click="logout"
+					class="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-600 hover:ring-2 hover:ring-gray-300"
+					@click="menuOpen = !menuOpen"
 				>
-					<Icon name="logout" class="h-4.5 w-4.5" />
+					{{ initials }}
 				</button>
+
+				<div
+					v-if="menuOpen"
+					class="absolute right-0 z-20 mt-2 w-52 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg"
+				>
+					<div class="border-b px-3.5 py-2.5">
+						<p class="truncate text-sm font-medium text-gray-900">{{ session.user }}</p>
+					</div>
+					<a
+						href="/app"
+						class="flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+					>
+						<Icon name="desktop" class="h-4 w-4 text-gray-400" />
+						Switch to Desk
+					</a>
+					<button
+						type="button"
+						class="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+						@click="logout"
+					>
+						<Icon name="logout" class="h-4 w-4 text-gray-400" />
+						Log out
+					</button>
+				</div>
 			</div>
 		</header>
 
@@ -55,7 +75,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { call } from 'frappe-ui'
 import Icon from './components/Icon.vue'
@@ -64,6 +84,17 @@ import { useSessionStore } from './stores/session'
 
 const session = useSessionStore()
 onMounted(() => session.fetch())
+
+const menuOpen = ref(false)
+const menuRoot = ref(null)
+
+function onDocumentClick(e) {
+	if (menuOpen.value && menuRoot.value && !menuRoot.value.contains(e.target)) {
+		menuOpen.value = false
+	}
+}
+onMounted(() => document.addEventListener('click', onDocumentClick))
+onUnmounted(() => document.removeEventListener('click', onDocumentClick))
 
 const initials = computed(() => {
 	const user = session.user

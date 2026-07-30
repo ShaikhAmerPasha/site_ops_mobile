@@ -25,8 +25,8 @@ export default defineConfig({
 				maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
 			},
 			manifest: {
-				name: 'Site Ops Mobile',
-				short_name: 'Site Ops',
+				name: 'Site Procure',
+				short_name: 'Site Procure',
 				description: 'Mobile-first PWA for site engineers',
 				start_url: '/site_ops_mobile',
 				scope: '/site_ops_mobile',
