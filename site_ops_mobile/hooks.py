@@ -11,15 +11,14 @@ app_license = "mit"
 # required_apps = []
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "site_ops_mobile",
-# 		"logo": "/assets/site_ops_mobile/logo.png",
-# 		"title": "Site Ops Mobile",
-# 		"route": "/site_ops_mobile",
-# 		"has_permission": "site_ops_mobile.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": "site_ops_mobile",
+		"logo": "/assets/site_ops_mobile/manifest/icon-192.png",
+		"title": "Site Ops Mobile",
+		"route": "/site_ops_mobile",
+	}
+]
 
 # Includes in <head>
 # ------------------
@@ -58,6 +57,19 @@ app_license = "mit"
 
 # application home page (will override Website Settings)
 # home_page = "login"
+
+website_route_rules = [
+	{"from_route": "/site_ops_mobile/<path:app_path>", "to_route": "site_ops_mobile"},
+]
+
+# Login redirect for "Website User" type accounts (e.g. a Site Engineer whose
+# only job is this app) — sends them straight here instead of /app or the
+# generic portal home page. Has no effect for "System User" accounts; those
+# instead pick this app via the "Default App" field on their User record
+# (enabled by add_to_apps_screen above).
+role_home_page = {
+	"Site Engineer": ["site_ops_mobile"],
+}
 
 # website user home page (by Role)
 # role_home_page = {

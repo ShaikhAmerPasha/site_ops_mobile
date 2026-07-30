@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+		<meta name="theme-color" content="#4f46e5" />
+		<title>Site Ops Mobile</title>
+		<script type="module" crossorigin src="/assets/site_ops_mobile/frontend/assets/index-Clg1jiUL.js"></script>
+		<link rel="stylesheet" crossorigin href="/assets/site_ops_mobile/frontend/assets/index-AF4n015y.css">
+	<link rel="manifest" href="/assets/site_ops_mobile/frontend/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/assets/site_ops_mobile/frontend/registerSW.js"></script></head>
+	<body>
+		<div id="app"></div>
+	
+          <script>
+              {% for key in boot %}
+              window["{{ key }}"] = {{ boot[key] | tojson }};
+              {% endfor %}
+          </script>
+          </body>
+          
+</html>
