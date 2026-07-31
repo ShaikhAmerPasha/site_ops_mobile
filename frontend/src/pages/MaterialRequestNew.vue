@@ -35,25 +35,26 @@
 
 		<div class="space-y-3">
 			<div v-for="(row, idx) in rows" :key="idx" class="rounded-lg border border-gray-200 bg-white p-3.5">
-				<div v-if="row.item_code" class="mb-2 flex items-center justify-between">
-					<div class="flex items-center gap-2">
-						<div class="flex h-8 w-8 items-center justify-center rounded-md bg-indigo-50 text-indigo-500">
+				<div class="mb-2 flex items-center justify-between gap-2">
+					<div v-if="row.item_code" class="flex min-w-0 items-center gap-2">
+						<div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-indigo-50 text-indigo-500">
 							<Icon name="cube" class="h-4 w-4" />
 						</div>
-						<div>
-							<p class="text-sm font-medium text-gray-900">{{ row.item_code }}</p>
-							<p class="text-xs text-gray-400">{{ row.item_name }}</p>
+						<div class="min-w-0">
+							<p class="truncate text-sm font-medium text-gray-900">{{ row.item_code }}</p>
+							<p class="truncate text-xs text-gray-400">{{ row.item_name }}</p>
 						</div>
 					</div>
+					<ItemPicker v-else class="flex-1" @select="(item) => pickItem(idx, item)" />
 					<button
 						type="button"
-						class="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 hover:bg-red-50 hover:text-red-600"
+						class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-gray-400 hover:bg-red-50 hover:text-red-600"
+						title="Remove this item"
 						@click="rows.splice(idx, 1)"
 					>
 						<Icon name="trash" class="h-4 w-4" />
 					</button>
 				</div>
-				<ItemPicker v-else @select="(item) => pickItem(idx, item)" />
 
 				<div v-if="row.item_code" class="mt-3 flex items-center gap-2">
 					<label class="text-xs text-gray-600">Qty</label>
@@ -105,7 +106,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import ItemPicker from '../components/ItemPicker.vue'
 import PageHeader from '../components/PageHeader.vue'
@@ -114,8 +115,12 @@ import CreatableSelect from '../components/CreatableSelect.vue'
 import Icon from '../components/Icon.vue'
 import { getMyDefaults, getList, createAndSubmit } from '../utils/frappeApi'
 import { toast } from '../utils/toast'
+import { saveDraft, loadDraft, clearDraft } from '../utils/draft'
+import { useSessionStore } from '../stores/session'
 
 const router = useRouter()
+const session = useSessionStore()
+const draftKey = computed(() => `site_ops_mobile:mr_draft:${session.user || 'anon'}`)
 
 const scheduleDate = ref(new Date().toISOString().slice(0, 10))
 const projectCostCenter = ref('')
@@ -128,6 +133,7 @@ const warehouses = ref([])
 const costCenters = ref([])
 const rootWarehouse = ref('')
 const rootCostCenter = ref('')
+let restoringDraft = true
 
 const warehouseExtraFields = computed(() => ({
 	company: defaults.value.company,
@@ -139,6 +145,17 @@ const costCenterExtraFields = computed(() => ({
 }))
 
 onMounted(async () => {
+	if (!session.user) await session.fetch().catch(() => {})
+	const draft = loadDraft(draftKey.value)
+	if (draft) {
+		scheduleDate.value = draft.scheduleDate || scheduleDate.value
+		projectCostCenter.value = draft.projectCostCenter || ''
+		siteRemarks.value = draft.siteRemarks || ''
+		if (Array.isArray(draft.rows) && draft.rows.length) rows.value = draft.rows
+		toast.success('Restored your unsaved draft')
+	}
+	restoringDraft = false
+
 	defaults.value = await getMyDefaults().catch(() => ({}))
 	const company = defaults.value.company
 
@@ -182,6 +199,20 @@ onMounted(async () => {
 
 	defaultsLoaded.value = true
 })
+
+watch(
+	[scheduleDate, projectCostCenter, siteRemarks, rows],
+	() => {
+		if (restoringDraft) return
+		saveDraft(draftKey.value, {
+			scheduleDate: scheduleDate.value,
+			projectCostCenter: projectCostCenter.value,
+			siteRemarks: siteRemarks.value,
+			rows: rows.value,
+		})
+	},
+	{ deep: true },
+)
 
 function pickItem(idx, item) {
 	rows.value[idx] = {
@@ -229,6 +260,7 @@ async function submit() {
 				warehouse: r.warehouse,
 			})),
 		})
+		clearDraft(draftKey.value)
 		toast.success('Material Request submitted')
 		router.push('/material-requests')
 	} catch (e) {

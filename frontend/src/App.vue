@@ -56,7 +56,7 @@
 			<router-link
 				v-for="tab in tabs"
 				:key="tab.to"
-				:to="tab.to"
+				:to="lastPath[tab.key]"
 				class="flex flex-1 flex-col items-center gap-1 py-2.5 text-xs transition-colors"
 				:class="isActive(tab.match) ? 'text-indigo-600' : 'text-gray-400'"
 			>
@@ -75,7 +75,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, reactive, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { call } from 'frappe-ui'
 import Icon from './components/Icon.vue'
@@ -114,11 +114,24 @@ async function logout() {
 
 const route = useRoute()
 const tabs = [
-	{ label: 'Requests', to: '/material-requests', match: '/material-requests', icon: 'clipboard-list' },
-	{ label: 'Receive', to: '/purchase-orders', match: '/purchase-', icon: 'truck' },
-	{ label: 'Items', to: '/items', match: '/items', icon: 'cube' },
+	{ key: 'requests', label: 'Requests', to: '/material-requests', match: '/material-requests', icon: 'clipboard-list' },
+	{ key: 'receive', label: 'Receive', to: '/purchase-orders', match: '/purchase-', icon: 'truck' },
+	{ key: 'items', label: 'Items', to: '/items', match: '/items', icon: 'cube' },
 ]
 function isActive(match) {
 	return route.path.startsWith(match)
 }
+
+// Each tab remembers the last page you were on within it (e.g. the New
+// Material Request form, not just the list) so switching tabs and coming
+// back doesn't strand an in-progress form behind the list view.
+const lastPath = reactive(Object.fromEntries(tabs.map((t) => [t.key, t.to])))
+watch(
+	() => route.fullPath,
+	(fullPath) => {
+		const tab = tabs.find((t) => route.path.startsWith(t.match))
+		if (tab) lastPath[tab.key] = fullPath
+	},
+	{ immediate: true },
+)
 </script>

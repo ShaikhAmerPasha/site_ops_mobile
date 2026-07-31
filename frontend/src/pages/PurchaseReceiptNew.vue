@@ -102,6 +102,7 @@ onMounted(async () => {
 
 async function submit() {
 	submitting.value = true
+	let saved = null
 	try {
 		const payload = {
 			...doc.value,
@@ -110,16 +111,31 @@ async function submit() {
 				received_qty: row.qty,
 			})),
 		}
-		const saved = await createAndSubmit(payload)
-		if (photo.value) {
-			await uploadFile(photo.value, 'Purchase Receipt', saved.name)
-		}
-		toast.success('Receipt submitted')
-		router.push(`/purchase-receipts/${saved.name}`)
+		saved = await createAndSubmit(payload)
 	} catch (e) {
 		toast.error(e.messages?.[0] || e.message || 'Failed to submit receipt.')
-	} finally {
 		submitting.value = false
+		return
 	}
+
+	// The receipt is already saved and submitted at this point — a failure
+	// from here on (e.g. the photo upload) must never be reported as a
+	// failed submission, or the engineer may retry and create a duplicate.
+	if (photo.value) {
+		try {
+			await uploadFile(photo.value, 'Purchase Receipt', saved.name)
+		} catch (e) {
+			toast.error(
+				`Receipt ${saved.name} submitted, but the photo failed to attach: ${e.messages?.[0] || e.message || 'unknown error'}. You can add it later from Desk.`,
+			)
+			submitting.value = false
+			router.push(`/purchase-receipts/${saved.name}`)
+			return
+		}
+	}
+
+	toast.success('Receipt submitted')
+	submitting.value = false
+	router.push(`/purchase-receipts/${saved.name}`)
 }
 </script>
