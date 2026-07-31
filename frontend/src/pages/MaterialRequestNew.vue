@@ -11,6 +11,25 @@
 		<input
 			v-model="scheduleDate"
 			type="date"
+			class="mb-4 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+		/>
+
+		<label class="mb-1 block text-xs font-medium text-gray-600">Project Cost Center</label>
+		<CreatableSelect
+			v-model="projectCostCenter"
+			:options="costCenters"
+			placeholder="Project Cost Center"
+			doctype="Cost Center"
+			name-field="cost_center_name"
+			:extra-fields="costCenterExtraFields"
+			@created="(doc) => costCenters.push(doc)"
+		/>
+
+		<label class="mb-1 mt-4 block text-xs font-medium text-gray-600">Site Remarks (optional)</label>
+		<textarea
+			v-model="siteRemarks"
+			rows="2"
+			placeholder="Notes for this material requirement…"
 			class="mb-5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
 		/>
 
@@ -48,23 +67,16 @@
 					<span class="text-xs text-gray-400">{{ row.uom }}</span>
 				</div>
 
-				<div v-if="row.item_code && warehouses.length > 1" class="mt-2">
-					<label class="mb-1 block text-xs text-gray-600">Warehouse</label>
-					<select
-						v-model="row.warehouse"
-						class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-					>
-						<option value="" disabled>Select warehouse</option>
-						<option v-for="w in warehouses" :key="w.name" :value="w.name">{{ w.name }}</option>
-					</select>
-				</div>
-
 				<div v-if="row.item_code" class="mt-2">
-					<input
-						v-model="row.description"
-						type="text"
-						placeholder="Remarks (optional) — e.g. need urgently, specific brand"
-						class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+					<label class="mb-1 block text-xs text-gray-600">Warehouse</label>
+					<CreatableSelect
+						v-model="row.warehouse"
+						:options="warehouses"
+						placeholder="Warehouse"
+						doctype="Warehouse"
+						name-field="warehouse_name"
+						:extra-fields="warehouseExtraFields"
+						@created="(doc) => warehouses.push(doc)"
 					/>
 				</div>
 			</div>
@@ -98,6 +110,7 @@ import { useRouter } from 'vue-router'
 import ItemPicker from '../components/ItemPicker.vue'
 import PageHeader from '../components/PageHeader.vue'
 import AppButton from '../components/AppButton.vue'
+import CreatableSelect from '../components/CreatableSelect.vue'
 import Icon from '../components/Icon.vue'
 import { getMyDefaults, getList, createAndSubmit } from '../utils/frappeApi'
 import { toast } from '../utils/toast'
@@ -105,21 +118,68 @@ import { toast } from '../utils/toast'
 const router = useRouter()
 
 const scheduleDate = ref(new Date().toISOString().slice(0, 10))
+const projectCostCenter = ref('')
+const siteRemarks = ref('')
 const rows = ref([{ item_code: '', qty: 1 }])
 const submitting = ref(false)
 const defaults = ref({})
 const defaultsLoaded = ref(false)
 const warehouses = ref([])
+const costCenters = ref([])
+const rootWarehouse = ref('')
+const rootCostCenter = ref('')
+
+const warehouseExtraFields = computed(() => ({
+	company: defaults.value.company,
+	parent_warehouse: rootWarehouse.value,
+}))
+const costCenterExtraFields = computed(() => ({
+	company: defaults.value.company,
+	parent_cost_center: rootCostCenter.value,
+}))
 
 onMounted(async () => {
 	defaults.value = await getMyDefaults().catch(() => ({}))
-	const warehouseFilters = [['is_group', '=', 0]]
-	if (defaults.value.company) warehouseFilters.push(['company', '=', defaults.value.company])
+	const company = defaults.value.company
+
+	const companyFilter = (extra = []) => (company ? [['company', '=', company], ...extra] : extra)
+
 	warehouses.value = await getList('Warehouse', {
-		filters: warehouseFilters,
+		filters: companyFilter([['is_group', '=', 0]]),
 		fields: ['name'],
 		limit_page_length: 100,
 	}).catch(() => [])
+
+	costCenters.value = await getList('Cost Center', {
+		filters: companyFilter([['is_group', '=', 0]]),
+		fields: ['name'],
+		limit_page_length: 100,
+	}).catch(() => [])
+
+	if (company) {
+		const [rootWh] = await getList('Warehouse', {
+			filters: [
+				['company', '=', company],
+				['is_group', '=', 1],
+				['parent_warehouse', 'in', ['', null]],
+			],
+			fields: ['name'],
+			limit_page_length: 1,
+		}).catch(() => [])
+		rootWarehouse.value = rootWh?.name || ''
+
+		const [rootCc] = await getList('Cost Center', {
+			filters: [
+				['company', '=', company],
+				['is_group', '=', 1],
+				['parent_cost_center', 'in', ['', null]],
+			],
+			fields: ['name'],
+			limit_page_length: 1,
+		}).catch(() => [])
+		rootCostCenter.value = rootCc?.name || ''
+	}
+
 	defaultsLoaded.value = true
 })
 
@@ -132,7 +192,6 @@ function pickItem(idx, item) {
 		conversion_factor: 1,
 		qty: 1,
 		warehouse: defaultWarehouse(),
-		description: '',
 	}
 }
 
@@ -145,6 +204,7 @@ function defaultWarehouse() {
 const canSubmit = computed(
 	() =>
 		warehouses.value.length &&
+		projectCostCenter.value &&
 		rows.value.length &&
 		rows.value.every((r) => r.item_code && r.qty > 0 && r.warehouse),
 )
@@ -157,6 +217,8 @@ async function submit() {
 			material_request_type: 'Purchase',
 			transaction_date: new Date().toISOString().slice(0, 10),
 			company: defaults.value.company,
+			project_cost_center: projectCostCenter.value,
+			site_remarks: siteRemarks.value || undefined,
 			items: rows.value.map((r) => ({
 				item_code: r.item_code,
 				qty: r.qty,
@@ -165,7 +227,6 @@ async function submit() {
 				conversion_factor: r.conversion_factor,
 				schedule_date: scheduleDate.value,
 				warehouse: r.warehouse,
-				description: r.description || undefined,
 			})),
 		})
 		toast.success('Material Request submitted')

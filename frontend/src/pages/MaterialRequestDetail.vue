@@ -9,7 +9,14 @@
 				<h3 class="text-base font-semibold text-gray-900">{{ doc.name }}</h3>
 				<StatusBadge :status="doc.status" />
 			</div>
-			<p class="mb-4 text-xs text-gray-400">{{ doc.transaction_date }} · {{ doc.company }}</p>
+			<p class="mb-1 text-xs text-gray-400">{{ doc.transaction_date }} · {{ doc.company }}</p>
+			<p v-if="doc.project_cost_center" class="mb-1 text-xs text-gray-500">
+				Project Cost Center: <span class="font-medium text-gray-700">{{ doc.project_cost_center }}</span>
+			</p>
+			<p v-if="doc.site_remarks" class="mb-4 rounded bg-gray-50 px-2 py-1 text-xs italic text-gray-500">
+				{{ doc.site_remarks }}
+			</p>
+			<div v-else class="mb-4"></div>
 
 			<div class="space-y-2">
 				<div v-for="row in doc.items" :key="row.name" class="rounded-lg border border-gray-200 bg-white p-3.5">
@@ -26,9 +33,6 @@
 						<span>Qty: <strong class="text-gray-700">{{ row.qty }} {{ row.uom }}</strong></span>
 						<span>Warehouse: {{ row.warehouse }}</span>
 					</div>
-					<p v-if="row.description" class="mt-2 rounded bg-gray-50 px-2 py-1 text-xs italic text-gray-500">
-						{{ row.description }}
-					</p>
 				</div>
 			</div>
 		</div>
