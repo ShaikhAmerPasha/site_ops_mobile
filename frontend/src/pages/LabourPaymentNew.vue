@@ -237,6 +237,10 @@ async function save() {
 				doctype: 'Labour Payment Entry',
 				contractor: contractor.value,
 				[PROJECT_FIELD]: projectCostCenter.value,
+				// Remarks is hidden from Site Manager by design (Finance Head fills
+				// it), but the doctype has it as mandatory — auto-fill so the
+				// hidden-field mandatory check doesn't block the Site Manager's save.
+				remarks: 'Submitted via Site Procure app',
 				work_items: workItems,
 			})
 			clearDraft(draftKey.value)
