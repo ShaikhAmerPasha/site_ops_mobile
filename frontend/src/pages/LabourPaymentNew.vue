@@ -65,13 +65,14 @@
 							:disabled="!canEditItems"
 							class="w-24 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-50"
 						/>
-						<input
+						<select
 							v-model="row.unit"
-							type="text"
-							placeholder="Unit"
 							:disabled="!canEditItems"
 							class="w-24 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-50"
-						/>
+						>
+							<option value="" disabled>Unit</option>
+							<option v-for="u in UNIT_OPTIONS" :key="u" :value="u">{{ u }}</option>
+						</select>
 					</div>
 				</div>
 			</div>
@@ -131,6 +132,11 @@ import { useSessionStore } from '../stores/session'
 // Fieldname on the live doctype is documented but unconfirmed on this local
 // bench — change here if staging reveals a different fieldname.
 const PROJECT_FIELD = 'project_cost_center'
+
+// Options list for the unit Select field — confirm exact set/spelling
+// against the live doctype on staging; a value loaded from an existing doc
+// that isn't in this list won't show as selected.
+const UNIT_OPTIONS = ['Nos', 'Day', 'Sqft', 'Sqm', 'Kg', 'Ton', 'Cft', 'Rmt', 'Load', 'Bag', 'Ltr', 'Hour']
 
 const props = defineProps({ name: String })
 const router = useRouter()

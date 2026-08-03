@@ -4,9 +4,14 @@ export const toasts = reactive([])
 
 let idCounter = 0
 
+function stripHtml(message) {
+	if (typeof message !== 'string') return message
+	return message.replace(/<[^>]*>/g, '').trim()
+}
+
 function push(message, type) {
 	const id = ++idCounter
-	toasts.push({ id, message, type })
+	toasts.push({ id, message: stripHtml(message), type })
 	setTimeout(() => {
 		const idx = toasts.findIndex((t) => t.id === id)
 		if (idx !== -1) toasts.splice(idx, 1)
