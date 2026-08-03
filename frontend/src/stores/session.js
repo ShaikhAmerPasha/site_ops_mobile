@@ -18,9 +18,13 @@ export const useSessionStore = defineStore('session', {
 			this.loading = true
 			this.error = null
 			try {
-				this.user = await call('frappe.auth.get_logged_user')
-				this.defaults = await getMyDefaults().catch(() => ({}))
-				this.roles = this.defaults.roles || []
+				const [user, defaults] = await Promise.all([
+					call('frappe.auth.get_logged_user'),
+					getMyDefaults().catch(() => ({})),
+				])
+				this.user = user
+				this.defaults = defaults
+				this.roles = defaults.roles || []
 			} catch (e) {
 				this.error = e
 			} finally {

@@ -137,7 +137,7 @@ onMounted(async () => {
 	}
 	restoringDraft = false
 
-	defaults.value = await getMyDefaults().catch(() => ({}))
+	defaults.value = session.defaults?.company ? session.defaults : await getMyDefaults().catch(() => ({}))
 	const company = defaults.value.company
 
 	const companyFilter = (extra = []) => (company ? [['company', '=', company], ...extra] : extra)
