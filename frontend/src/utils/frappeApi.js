@@ -20,6 +20,14 @@ export function submitDoc(doc) {
 	return call('frappe.client.submit', { doc })
 }
 
+export function saveDoc(doc) {
+	return call('frappe.client.save', { doc })
+}
+
+export function applyWorkflowAction(doctype, name, action) {
+	return call('frappe.model.workflow.apply_workflow', { doc: { doctype, name }, action })
+}
+
 export function getMyDefaults() {
 	return call('site_ops_mobile.api.get_my_defaults')
 }

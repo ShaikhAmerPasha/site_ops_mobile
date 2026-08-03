@@ -113,11 +113,20 @@ async function logout() {
 }
 
 const route = useRoute()
-const tabs = [
-	{ key: 'requests', label: 'Requests', to: '/material-requests', match: '/material-requests', icon: 'clipboard-list' },
-	{ key: 'receive', label: 'Receive', to: '/purchase-orders', match: '/purchase-', icon: 'truck' },
-	{ key: 'items', label: 'Items', to: '/items', match: '/items', icon: 'cube' },
-]
+const tabs = computed(() => {
+	const base = [
+		{ key: 'requests', label: 'Requests', to: '/material-requests', match: '/material-requests', icon: 'clipboard-list' },
+		{ key: 'receive', label: 'Receive', to: '/purchase-orders', match: '/purchase-', icon: 'truck' },
+		{ key: 'items', label: 'Items', to: '/items', match: '/items', icon: 'cube' },
+	]
+	if (session.isSiteManager) {
+		base.push(
+			{ key: 'issue', label: 'Issue', to: '/stock-entries', match: '/stock-entries', icon: 'archive' },
+			{ key: 'labour', label: 'Labour', to: '/labour-payments', match: '/labour-payments', icon: 'users' },
+		)
+	}
+	return base
+})
 function isActive(match) {
 	return route.path.startsWith(match)
 }
@@ -125,11 +134,20 @@ function isActive(match) {
 // Each tab remembers the last page you were on within it (e.g. the New
 // Material Request form, not just the list) so switching tabs and coming
 // back doesn't strand an in-progress form behind the list view.
-const lastPath = reactive(Object.fromEntries(tabs.map((t) => [t.key, t.to])))
+const lastPath = reactive(Object.fromEntries(tabs.value.map((t) => [t.key, t.to])))
+watch(
+	tabs,
+	(newTabs) => {
+		for (const t of newTabs) {
+			if (!(t.key in lastPath)) lastPath[t.key] = t.to
+		}
+	},
+	{ immediate: true },
+)
 watch(
 	() => route.fullPath,
 	(fullPath) => {
-		const tab = tabs.find((t) => route.path.startsWith(t.match))
+		const tab = tabs.value.find((t) => route.path.startsWith(t.match))
 		if (tab) lastPath[tab.key] = fullPath
 	},
 	{ immediate: true },

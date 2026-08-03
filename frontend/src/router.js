@@ -50,6 +50,38 @@ const routes = [
 		name: 'ItemNew',
 		component: () => import('./pages/ItemNew.vue'),
 	},
+	{
+		path: '/stock-entries',
+		name: 'StockEntryList',
+		component: () => import('./pages/StockEntryList.vue'),
+	},
+	{
+		path: '/stock-entries/new',
+		name: 'StockEntryNew',
+		component: () => import('./pages/StockEntryNew.vue'),
+	},
+	{
+		path: '/stock-entries/:name',
+		name: 'StockEntryDetail',
+		component: () => import('./pages/StockEntryDetail.vue'),
+		props: true,
+	},
+	{
+		path: '/labour-payments',
+		name: 'LabourPaymentList',
+		component: () => import('./pages/LabourPaymentList.vue'),
+	},
+	{
+		path: '/labour-payments/new',
+		name: 'LabourPaymentNew',
+		component: () => import('./pages/LabourPaymentNew.vue'),
+	},
+	{
+		path: '/labour-payments/:name',
+		name: 'LabourPaymentEdit',
+		component: () => import('./pages/LabourPaymentNew.vue'),
+		props: true,
+	},
 ]
 
 export default createRouter({

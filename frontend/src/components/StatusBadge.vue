@@ -19,6 +19,8 @@ const MAP = {
 	'To Bill': 'bg-blue-100 text-blue-700',
 	Completed: 'bg-green-100 text-green-700',
 	Submitted: 'bg-green-100 text-green-700',
+	'Details Updated': 'bg-blue-100 text-blue-700',
+	Approved: 'bg-green-100 text-green-700',
 }
 
 const classes = computed(() => MAP[props.status] || 'bg-green-100 text-green-700')
