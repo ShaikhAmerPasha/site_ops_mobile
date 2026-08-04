@@ -154,14 +154,10 @@ const contractors = ref([])
 const costCenters = ref([])
 let restoringDraft = true
 
-const canEditItems = computed(
-	() => !doc.value.name || ['Draft', 'Rejected'].includes(doc.value.workflow_state),
-)
+const canEditItems = computed(() => !doc.value.name || doc.value.workflow_state === 'Draft')
 
 const workflowAction = computed(() => {
-	if (!doc.value.name) return null
-	if (doc.value.workflow_state === 'Draft') return 'Mark as Details Updated'
-	if (doc.value.workflow_state === 'Rejected') return 'Resubmit'
+	if (doc.value.name && doc.value.workflow_state === 'Draft') return 'Mark as Details Updated'
 	return null
 })
 

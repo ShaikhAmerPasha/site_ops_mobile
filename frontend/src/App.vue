@@ -121,7 +121,7 @@ const tabs = computed(() => {
 	]
 	if (session.isSiteManager) {
 		base.push(
-			{ key: 'issue', label: 'Issue', to: '/stock-entries', match: '/stock-entries', icon: 'archive' },
+			{ key: 'issue', label: 'Issue', to: '/material-issues', match: '/material-issues', icon: 'archive' },
 			{ key: 'labour', label: 'Labour', to: '/labour-payments', match: '/labour-payments', icon: 'users' },
 		)
 	}

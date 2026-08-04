@@ -51,19 +51,19 @@ const routes = [
 		component: () => import('./pages/ItemNew.vue'),
 	},
 	{
-		path: '/stock-entries',
-		name: 'StockEntryList',
-		component: () => import('./pages/StockEntryList.vue'),
+		path: '/material-issues',
+		name: 'MaterialIssueList',
+		component: () => import('./pages/MaterialIssueList.vue'),
 	},
 	{
-		path: '/stock-entries/new',
-		name: 'StockEntryNew',
-		component: () => import('./pages/StockEntryNew.vue'),
+		path: '/material-issues/new',
+		name: 'MaterialIssueNew',
+		component: () => import('./pages/MaterialIssueNew.vue'),
 	},
 	{
-		path: '/stock-entries/:name',
-		name: 'StockEntryDetail',
-		component: () => import('./pages/StockEntryDetail.vue'),
+		path: '/material-issues/:name',
+		name: 'MaterialIssueDetail',
+		component: () => import('./pages/MaterialIssueDetail.vue'),
 		props: true,
 	},
 	{
