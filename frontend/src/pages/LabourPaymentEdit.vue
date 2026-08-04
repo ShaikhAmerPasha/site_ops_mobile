@@ -4,35 +4,17 @@
 
 		<LoadingSpinner v-if="loading" />
 
-		<template v-else>
-			<div v-if="doc.name" class="mb-4 flex items-center justify-between">
+		<template v-else-if="doc.name">
+			<div class="mb-4 flex items-center justify-between">
 				<h3 class="text-base font-semibold text-gray-900">{{ doc.name }}</h3>
 				<StatusBadge :status="doc.workflow_state" />
 			</div>
 
 			<label class="mb-1 block text-xs font-medium text-gray-600">Contractor</label>
-			<CreatableSelect
-				v-if="!doc.name"
-				v-model="contractor"
-				:options="contractors"
-				placeholder="Contractor"
-				doctype="Supplier"
-				name-field="supplier_name"
-				@created="(d) => contractors.push(d)"
-			/>
-			<p v-else class="mb-4 text-sm text-gray-700">{{ contractor }}</p>
+			<p class="mb-4 text-sm text-gray-700">{{ contractor }}</p>
 
-			<label class="mb-1 mt-4 block text-xs font-medium text-gray-600">Project Cost Center</label>
-			<CreatableSelect
-				v-if="!doc.name"
-				v-model="projectCostCenter"
-				:options="costCenters"
-				placeholder="Project Cost Center"
-				doctype="Cost Center"
-				name-field="cost_center_name"
-				@created="(d) => costCenters.push(d)"
-			/>
-			<p v-else class="mb-4 text-sm text-gray-700">{{ projectCostCenter }}</p>
+			<label class="mb-1 block text-xs font-medium text-gray-600">Project Cost Center</label>
+			<p class="mb-4 text-sm text-gray-700">{{ projectCostCenter }}</p>
 
 			<div class="mt-5 space-y-3">
 				<div v-for="(row, idx) in rows" :key="idx" class="rounded-lg border border-gray-200 bg-white p-3.5">
@@ -116,18 +98,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
 import PageHeader from '../components/PageHeader.vue'
 import AppButton from '../components/AppButton.vue'
-import CreatableSelect from '../components/CreatableSelect.vue'
 import StatusBadge from '../components/StatusBadge.vue'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Icon from '../components/Icon.vue'
-import { getDoc, getList, insertDoc, saveDoc, applyWorkflowAction } from '../utils/frappeApi'
+import { getDoc, saveDoc, applyWorkflowAction } from '../utils/frappeApi'
 import { toast } from '../utils/toast'
-import { saveDraft, loadDraft, clearDraft } from '../utils/draft'
-import { useSessionStore } from '../stores/session'
 
 // Fieldname on the live doctype is documented but unconfirmed on this local
 // bench — change here if staging reveals a different fieldname.
@@ -138,10 +116,9 @@ const PROJECT_FIELD = 'project_cost_center'
 // that isn't in this list won't show as selected.
 const UNIT_OPTIONS = ['Nos', 'Day', 'Sqft', 'Sqm', 'Kg', 'Ton', 'Cft', 'Rmt', 'Load', 'Bag', 'Ltr', 'Hour']
 
-const props = defineProps({ name: String })
-const router = useRouter()
-const session = useSessionStore()
-const draftKey = computed(() => `site_ops_mobile:lpe_draft:${session.user || 'anon'}`)
+// Site Manager can only open and update work_items on an existing Draft
+// entry — never create one, so this page is edit-only (name is required).
+const props = defineProps({ name: { type: String, required: true } })
 
 const doc = ref({})
 const loading = ref(true)
@@ -149,12 +126,9 @@ const saving = ref(false)
 const applyingWorkflow = ref(false)
 const contractor = ref('')
 const projectCostCenter = ref('')
-const rows = ref([{ work_description: '', quantity: 1, unit: '' }])
-const contractors = ref([])
-const costCenters = ref([])
-let restoringDraft = true
+const rows = ref([])
 
-const canEditItems = computed(() => !doc.value.name || doc.value.workflow_state === 'Draft')
+const canEditItems = computed(() => doc.value.workflow_state === 'Draft')
 
 const workflowAction = computed(() => {
 	if (doc.value.name && doc.value.workflow_state === 'Draft') return 'Mark as Details Updated'
@@ -162,63 +136,25 @@ const workflowAction = computed(() => {
 })
 
 const canSave = computed(
-	() =>
-		contractor.value &&
-		projectCostCenter.value &&
-		rows.value.length &&
-		rows.value.every((r) => r.work_description && r.quantity > 0),
+	() => rows.value.length && rows.value.every((r) => r.work_description && r.quantity > 0),
 )
 
 onMounted(async () => {
-	if (!session.user) await session.fetch().catch(() => {})
-
-	contractors.value = await getList('Supplier', { fields: ['name'], limit_page_length: 100 }).catch(() => [])
-	costCenters.value = await getList('Cost Center', {
-		filters: [['is_group', '=', 0]],
-		fields: ['name'],
-		limit_page_length: 100,
-	}).catch(() => [])
-
-	if (props.name) {
-		try {
-			doc.value = await getDoc('Labour Payment Entry', props.name)
-			contractor.value = doc.value.contractor || ''
-			projectCostCenter.value = doc.value[PROJECT_FIELD] || ''
-			if (Array.isArray(doc.value.work_items) && doc.value.work_items.length) {
-				rows.value = doc.value.work_items.map((r) => ({
-					work_description: r.work_description,
-					quantity: r.quantity,
-					unit: r.unit,
-				}))
-			}
-		} catch (e) {
-			toast.error(e.messages?.[0] || e.message || 'Failed to load labour payment entry')
-		}
-	} else {
-		const draft = loadDraft(draftKey.value)
-		if (draft) {
-			contractor.value = draft.contractor || ''
-			projectCostCenter.value = draft.projectCostCenter || ''
-			if (Array.isArray(draft.rows) && draft.rows.length) rows.value = draft.rows
-			toast.success('Restored your unsaved draft')
-		}
+	try {
+		doc.value = await getDoc('Labour Payment Entry', props.name)
+		contractor.value = doc.value.contractor || ''
+		projectCostCenter.value = doc.value[PROJECT_FIELD] || ''
+		rows.value = (doc.value.work_items || []).map((r) => ({
+			work_description: r.work_description,
+			quantity: r.quantity,
+			unit: r.unit,
+		}))
+	} catch (e) {
+		toast.error(e.messages?.[0] || e.message || 'Failed to load labour payment entry')
+	} finally {
+		loading.value = false
 	}
-	restoringDraft = false
-	loading.value = false
 })
-
-watch(
-	[contractor, projectCostCenter, rows],
-	() => {
-		if (restoringDraft || doc.value.name) return
-		saveDraft(draftKey.value, {
-			contractor: contractor.value,
-			projectCostCenter: projectCostCenter.value,
-			rows: rows.value,
-		})
-	},
-	{ deep: true },
-)
 
 async function save() {
 	saving.value = true
@@ -228,24 +164,8 @@ async function save() {
 			quantity: r.quantity,
 			unit: r.unit,
 		}))
-		if (!doc.value.name) {
-			doc.value = await insertDoc({
-				doctype: 'Labour Payment Entry',
-				contractor: contractor.value,
-				[PROJECT_FIELD]: projectCostCenter.value,
-				// Remarks is hidden from Site Manager by design (Finance Head fills
-				// it), but the doctype has it as mandatory — auto-fill so the
-				// hidden-field mandatory check doesn't block the Site Manager's save.
-				remarks: 'Submitted via Site Procure app',
-				work_items: workItems,
-			})
-			clearDraft(draftKey.value)
-			toast.success('Saved as draft')
-			router.replace(`/labour-payments/${doc.value.name}`)
-		} else {
-			doc.value = await saveDoc({ ...doc.value, work_items: workItems })
-			toast.success('Saved')
-		}
+		doc.value = await saveDoc({ ...doc.value, work_items: workItems })
+		toast.success('Saved')
 	} catch (e) {
 		toast.error(e.messages?.[0] || e.message || 'Failed to save.')
 	} finally {

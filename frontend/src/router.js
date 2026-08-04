@@ -72,14 +72,9 @@ const routes = [
 		component: () => import('./pages/LabourPaymentList.vue'),
 	},
 	{
-		path: '/labour-payments/new',
-		name: 'LabourPaymentNew',
-		component: () => import('./pages/LabourPaymentNew.vue'),
-	},
-	{
 		path: '/labour-payments/:name',
 		name: 'LabourPaymentEdit',
-		component: () => import('./pages/LabourPaymentNew.vue'),
+		component: () => import('./pages/LabourPaymentEdit.vue'),
 		props: true,
 	},
 ]
