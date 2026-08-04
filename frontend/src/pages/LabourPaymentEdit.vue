@@ -141,10 +141,12 @@ const canEditItems = computed(() => {
 	return !state || state === 'Draft'
 })
 
-const workflowAction = computed(() => {
-	if (doc.value.name && doc.value.workflow_state === 'Draft') return 'Mark as Details Updated'
-	return null
-})
+// Tied to the same resilient signal as canEditItems, not a literal
+// workflow_state check — if the real state field name differs from our
+// guess, this still offers the action (and a real server error surfaces via
+// toast if the action string is wrong) instead of the button silently never
+// appearing at all.
+const workflowAction = computed(() => (doc.value.name && canEditItems.value ? 'Mark as Details Updated' : null))
 
 const canSave = computed(
 	() => rows.value.length && rows.value.every((r) => r.work_description && r.quantity > 0),
