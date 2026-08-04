@@ -161,41 +161,47 @@ onMounted(async () => {
 
 	const companyFilter = (extra = []) => (company ? [['company', '=', company], ...extra] : extra)
 
-	warehouses.value = await getList('Warehouse', {
-		filters: companyFilter([['is_group', '=', 0]]),
-		fields: ['name'],
-		limit_page_length: 100,
-	}).catch(() => [])
-
-	costCenters.value = await getList('Cost Center', {
-		filters: companyFilter([['is_group', '=', 0]]),
-		fields: ['name'],
-		limit_page_length: 100,
-	}).catch(() => [])
-
-	if (company) {
-		const [rootWh] = await getList('Warehouse', {
-			filters: [
-				['company', '=', company],
-				['is_group', '=', 1],
-				['parent_warehouse', 'in', ['', null]],
-			],
+	// These four lookups are independent of each other — firing them together
+	// instead of one-after-another cuts form setup time to ~1 round trip
+	// worth of latency instead of ~4, which is real on mobile networks.
+	const [warehouseList, costCenterList, rootWh, rootCc] = await Promise.all([
+		getList('Warehouse', {
+			filters: companyFilter([['is_group', '=', 0]]),
 			fields: ['name'],
-			limit_page_length: 1,
-		}).catch(() => [])
-		rootWarehouse.value = rootWh?.name || ''
-
-		const [rootCc] = await getList('Cost Center', {
-			filters: [
-				['company', '=', company],
-				['is_group', '=', 1],
-				['parent_cost_center', 'in', ['', null]],
-			],
+			limit_page_length: 100,
+		}).catch(() => []),
+		getList('Cost Center', {
+			filters: companyFilter([['is_group', '=', 0]]),
 			fields: ['name'],
-			limit_page_length: 1,
-		}).catch(() => [])
-		rootCostCenter.value = rootCc?.name || ''
-	}
+			limit_page_length: 100,
+		}).catch(() => []),
+		company
+			? getList('Warehouse', {
+					filters: [
+						['company', '=', company],
+						['is_group', '=', 1],
+						['parent_warehouse', 'in', ['', null]],
+					],
+					fields: ['name'],
+					limit_page_length: 1,
+				}).catch(() => [])
+			: Promise.resolve([]),
+		company
+			? getList('Cost Center', {
+					filters: [
+						['company', '=', company],
+						['is_group', '=', 1],
+						['parent_cost_center', 'in', ['', null]],
+					],
+					fields: ['name'],
+					limit_page_length: 1,
+				}).catch(() => [])
+			: Promise.resolve([]),
+	])
+	warehouses.value = warehouseList
+	costCenters.value = costCenterList
+	rootWarehouse.value = rootWh?.[0]?.name || ''
+	rootCostCenter.value = rootCc?.[0]?.name || ''
 
 	defaultsLoaded.value = true
 })

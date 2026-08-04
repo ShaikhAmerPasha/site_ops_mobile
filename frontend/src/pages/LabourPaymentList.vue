@@ -24,22 +24,42 @@
 				<p class="mt-1 text-xs text-gray-400">{{ lpe.contractor }}</p>
 			</router-link>
 		</div>
+
+		<!-- Temporary debug panel — remove once the Draft-visibility issue is
+		confirmed fixed on production. Screenshot this and send it back. -->
+		<div class="mt-6 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3 text-xs text-gray-600">
+			<p class="mb-1 font-semibold text-gray-700">Debug info</p>
+			<p>User: {{ session.user || '(not loaded)' }}</p>
+			<p>Roles: {{ session.roles.length ? session.roles.join(', ') : '(none loaded)' }}</p>
+			<p>Entries returned: {{ entries.length }}</p>
+			<p v-if="fetchError" class="mt-1 text-red-600">Error: {{ fetchError }}</p>
+			<template v-if="firstDocFields">
+				<p class="mt-2 font-semibold text-gray-700">Fields on {{ entries[0]?.name }} containing "state"/"status":</p>
+				<p v-if="!firstDocFields.length">none found — the state field is named something else entirely</p>
+				<p v-for="f in firstDocFields" :key="f.key">{{ f.key }} = {{ f.value }}</p>
+			</template>
+		</div>
 	</div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getList } from '../utils/frappeApi'
+import { getList, getDoc } from '../utils/frappeApi'
 import { toast } from '../utils/toast'
+import { useSessionStore } from '../stores/session'
 import PageHeader from '../components/PageHeader.vue'
 import StatusBadge from '../components/StatusBadge.vue'
 import EmptyState from '../components/EmptyState.vue'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 
+const session = useSessionStore()
 const entries = ref([])
 const loading = ref(true)
+const fetchError = ref('')
+const firstDocFields = ref(null)
 
 onMounted(async () => {
+	if (!session.user) await session.fetch().catch(() => {})
 	try {
 		// No state filter here on purpose — show whatever this user's own
 		// doctype permissions let through, same set Desk shows them. We don't
@@ -49,8 +69,18 @@ onMounted(async () => {
 			order_by: 'modified desc',
 			limit_page_length: 50,
 		})
+
+		if (entries.value.length) {
+			const full = await getDoc('Labour Payment Entry', entries.value[0].name).catch(() => null)
+			if (full) {
+				firstDocFields.value = Object.keys(full)
+					.filter((k) => /state|status/i.test(k))
+					.map((k) => ({ key: k, value: full[k] }))
+			}
+		}
 	} catch (e) {
-		toast.error(e.messages?.[0] || e.message || 'Failed to load labour payment entries')
+		fetchError.value = e.messages?.[0] || e.message || JSON.stringify(e)
+		toast.error(fetchError.value || 'Failed to load labour payment entries')
 	} finally {
 		loading.value = false
 	}
