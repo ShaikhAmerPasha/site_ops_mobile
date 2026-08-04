@@ -128,7 +128,18 @@ const contractor = ref('')
 const projectCostCenter = ref('')
 const rows = ref([])
 
-const canEditItems = computed(() => doc.value.workflow_state === 'Draft')
+// docstatus is a core Frappe field, guaranteed to exist regardless of the
+// real workflow field name — a submitted doc (docstatus 1) is never
+// editable. Within an unsubmitted doc, only block editing when
+// workflow_state is explicitly a known non-Draft value; if that field name
+// turns out to differ from our guess (unconfirmed on production), this
+// still lets the Site Manager fill work_items instead of silently locking
+// the whole form.
+const canEditItems = computed(() => {
+	if (doc.value.docstatus !== 0) return false
+	const state = doc.value.workflow_state
+	return !state || state === 'Draft'
+})
 
 const workflowAction = computed(() => {
 	if (doc.value.name && doc.value.workflow_state === 'Draft') return 'Mark as Details Updated'
