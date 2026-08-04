@@ -6,8 +6,8 @@
 		<EmptyState
 			v-else-if="!entries.length"
 			icon="users"
-			title="No draft labour payment entries"
-			subtitle="Entries waiting for you to fill in work items will show up here"
+			title="No labour payment entries"
+			subtitle="Entries you can access will show up here"
 		/>
 
 		<div v-else class="space-y-2">
@@ -19,7 +19,7 @@
 			>
 				<div class="flex items-center justify-between gap-2">
 					<span class="font-medium text-gray-900">{{ lpe.name }}</span>
-					<StatusBadge :status="lpe.workflow_state" />
+					<StatusBadge v-if="lpe.workflow_state" :status="lpe.workflow_state" />
 				</div>
 				<p class="mt-1 text-xs text-gray-400">{{ lpe.contractor }}</p>
 			</router-link>
@@ -41,10 +41,10 @@ const loading = ref(true)
 
 onMounted(async () => {
 	try {
-		// 'in' with '' also catches legacy/manually-created docs whose
-		// workflow_state was never set (blank), not just the literal 'Draft'.
+		// No state filter here on purpose — show whatever this user's own
+		// doctype permissions let through, same set Desk shows them. We don't
+		// rely on the workflow_state field name/value matching our guess.
 		entries.value = await getList('Labour Payment Entry', {
-			filters: [['workflow_state', 'in', ['Draft', '']]],
 			fields: ['name', 'contractor', 'workflow_state'],
 			order_by: 'modified desc',
 			limit_page_length: 50,
