@@ -9,10 +9,7 @@
 			<p class="mb-1 text-xs text-gray-400">{{ doc.supplier }} · {{ doc.posting_date }}</p>
 			<div class="mb-4 mt-3 flex gap-2 rounded-lg bg-indigo-50 p-3 text-xs text-indigo-700">
 				<Icon name="alert-triangle" class="h-4 w-4 flex-shrink-0" />
-				<p>
-					Qty below defaults to what's still pending. Reduce it if only part of the shipment
-					has arrived — you can receive the rest later against the same order.
-				</p>
+				<p>Receiving the full pending quantity for each item.</p>
 			</div>
 
 			<div class="space-y-3">
@@ -30,12 +27,11 @@
 					<div class="mt-1.5 flex items-center gap-2">
 						<label class="text-xs font-medium text-gray-700">Receiving now</label>
 						<input
-							v-model.number="row.qty"
+							:value="row.qty"
 							type="number"
-							min="0"
-							:max="row.pendingQty"
-							step="0.01"
-							class="w-24 rounded-md border-2 border-indigo-300 px-2 py-1 text-sm font-medium focus:border-indigo-500 focus:outline-none"
+							readonly
+							disabled
+							class="w-24 rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-sm font-medium text-gray-700"
 						/>
 						<span class="text-xs text-gray-400">{{ row.uom }}</span>
 					</div>

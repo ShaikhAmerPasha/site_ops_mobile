@@ -44,6 +44,22 @@ export async function createAndSubmit(doc) {
 	return submitDoc(inserted)
 }
 
+// Frappe error responses carry the readable text nested inside
+// _server_messages: a JSON-stringified array of JSON-stringified {message}
+// objects. Passing that raw into an Error() shows unreadable escaped JSON in
+// the toast, easy to mistake for noise and dismiss without realizing it was
+// the actual failure reason.
+function extractServerMessage(data) {
+	if (!data?._server_messages) return data?.message
+	try {
+		const messages = JSON.parse(data._server_messages)
+		const first = JSON.parse(messages[0])
+		return first.message || data.message
+	} catch (e) {
+		return data.message
+	}
+}
+
 export async function uploadFile(file, doctype, docname) {
 	const formData = new FormData()
 	formData.append('file', file)
@@ -63,7 +79,7 @@ export async function uploadFile(file, doctype, docname) {
 	})
 	const data = await res.json()
 	if (!res.ok) {
-		throw new Error(data._server_messages || data.message || 'Upload failed')
+		throw new Error(extractServerMessage(data) || 'Upload failed')
 	}
 	return data.message
 }
