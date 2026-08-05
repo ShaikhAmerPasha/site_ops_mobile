@@ -88,11 +88,14 @@
 				size="lg"
 				class="mt-2.5"
 				:loading="applyingWorkflow"
-				:disabled="applyingWorkflow"
+				:disabled="applyingWorkflow || !canSave"
 				@click="runWorkflowAction"
 			>
 				{{ applyingWorkflow ? 'Please wait…' : workflowAction }}
 			</AppButton>
+			<p v-if="workflowAction && !canSave" class="mt-1.5 text-center text-xs text-gray-400">
+				Add at least one work item before sending to Finance.
+			</p>
 		</template>
 	</div>
 </template>
@@ -169,15 +172,19 @@ onMounted(async () => {
 	}
 })
 
+async function persistWorkItems() {
+	const workItems = rows.value.map((r) => ({
+		work_description: r.work_description,
+		quantity: r.quantity,
+		unit: r.unit,
+	}))
+	doc.value = await saveDoc({ ...doc.value, work_items: workItems })
+}
+
 async function save() {
 	saving.value = true
 	try {
-		const workItems = rows.value.map((r) => ({
-			work_description: r.work_description,
-			quantity: r.quantity,
-			unit: r.unit,
-		}))
-		doc.value = await saveDoc({ ...doc.value, work_items: workItems })
+		await persistWorkItems()
 		toast.success('Saved')
 	} catch (e) {
 		toast.error(e.messages?.[0] || e.message || 'Failed to save.')
@@ -187,9 +194,13 @@ async function save() {
 }
 
 async function runWorkflowAction() {
-	if (!workflowAction.value) return
+	if (!workflowAction.value || !canSave.value) return
 	applyingWorkflow.value = true
 	try {
+		// Always persist whatever's currently in the form first — otherwise a
+		// transition fired without hitting Save first would advance the doc
+		// with stale (possibly empty) work_items still in the database.
+		await persistWorkItems()
 		await applyWorkflowAction('Labour Payment Entry', doc.value.name, workflowAction.value)
 		doc.value = await getDoc('Labour Payment Entry', doc.value.name)
 		toast.success(`Marked as ${doc.value.workflow_state}`)
