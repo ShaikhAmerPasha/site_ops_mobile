@@ -11,7 +11,7 @@
 
 		<LoadingSpinner v-if="loading" />
 		<EmptyState
-			v-else-if="!items.length"
+			v-else-if="!entries.length"
 			icon="archive"
 			title="No material issued yet"
 			subtitle="Material issued to site — from here or from Desk — will show up here"
@@ -21,16 +21,16 @@
 
 		<div v-else class="space-y-2">
 			<router-link
-				v-for="mr in items"
-				:key="mr.name"
-				:to="`/material-issues/${mr.name}`"
+				v-for="se in entries"
+				:key="se.name"
+				:to="`/material-issues/${se.name}`"
 				class="block rounded-lg border border-gray-200 bg-white p-3.5 transition-colors active:bg-gray-50"
 			>
 				<div class="flex items-center justify-between gap-2">
-					<span class="font-medium text-gray-900">{{ mr.name }}</span>
-					<StatusBadge :status="mr.status" />
+					<span class="font-medium text-gray-900">{{ se.name }}</span>
+					<StatusBadge status="Submitted" />
 				</div>
-				<p class="mt-1 text-xs text-gray-400">{{ mr.transaction_date }}</p>
+				<p class="mt-1 text-xs text-gray-400">{{ se.posting_date }}</p>
 			</router-link>
 		</div>
 	</div>
@@ -49,15 +49,18 @@ import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Icon from '../components/Icon.vue'
 
 const router = useRouter()
-const items = ref([])
+const entries = ref([])
 const loading = ref(true)
 
 onMounted(async () => {
 	try {
-		items.value = await getList('Material Request', {
-			filters: [['material_request_type', '=', 'Material Issue']],
-			fields: ['name', 'status', 'transaction_date'],
-			order_by: 'creation desc',
+		entries.value = await getList('Stock Entry', {
+			filters: [
+				['purpose', '=', 'Material Issue'],
+				['docstatus', '=', 1],
+			],
+			fields: ['name', 'posting_date'],
+			order_by: 'posting_date desc',
 			limit_page_length: 50,
 		})
 	} catch (e) {

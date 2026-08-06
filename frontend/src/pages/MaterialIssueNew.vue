@@ -54,9 +54,9 @@
 				</div>
 
 				<div v-if="row.item_code" class="mt-2">
-					<label class="mb-1 block text-xs text-gray-600">Warehouse</label>
+					<label class="mb-1 block text-xs text-gray-600">Source Warehouse</label>
 					<CreatableSelect
-						v-model="row.warehouse"
+						v-model="row.s_warehouse"
 						:options="warehouses"
 						placeholder="Warehouse"
 						doctype="Warehouse"
@@ -98,7 +98,7 @@ import PageHeader from '../components/PageHeader.vue'
 import AppButton from '../components/AppButton.vue'
 import CreatableSelect from '../components/CreatableSelect.vue'
 import Icon from '../components/Icon.vue'
-import { getMyDefaults, getList, createAndSubmit } from '../utils/frappeApi'
+import { getMyDefaults, getDoc, getList, createAndSubmit } from '../utils/frappeApi'
 import { toast } from '../utils/toast'
 import { saveDraft, loadDraft, clearDraft } from '../utils/draft'
 import { useSessionStore } from '../stores/session'
@@ -187,6 +187,19 @@ onMounted(async () => {
 	defaultsLoaded.value = true
 })
 
+// Best-effort echo of the production Cost Center -> default_warehouse
+// auto-fill (a custom field that doesn't exist on this local bench). No-ops
+// gracefully today; starts working once that field exists on the real site.
+watch(projectCostCenter, async (cc) => {
+	if (!cc) return
+	const ccDoc = await getDoc('Cost Center', cc).catch(() => null)
+	const defaultWh = ccDoc?.default_warehouse
+	if (!defaultWh) return
+	for (const row of rows.value) {
+		if (!row.s_warehouse) row.s_warehouse = defaultWh
+	}
+})
+
 watch(
 	[projectCostCenter, rows],
 	() => {
@@ -207,11 +220,11 @@ function pickItem(idx, item) {
 		stock_uom: item.stock_uom,
 		conversion_factor: 1,
 		qty: 1,
-		warehouse: defaultWarehouse(),
+		s_warehouse: defaultSWarehouse(),
 	}
 }
 
-function defaultWarehouse() {
+function defaultSWarehouse() {
 	if (defaults.value.warehouse) return defaults.value.warehouse
 	if (warehouses.value.length === 1) return warehouses.value[0].name
 	return ''
@@ -222,16 +235,16 @@ const canSubmit = computed(
 		warehouses.value.length &&
 		projectCostCenter.value &&
 		rows.value.length &&
-		rows.value.every((r) => r.item_code && r.qty > 0 && r.warehouse),
+		rows.value.every((r) => r.item_code && r.qty > 0 && r.s_warehouse),
 )
 
 async function submit() {
 	submitting.value = true
 	try {
 		await createAndSubmit({
-			doctype: 'Material Request',
-			material_request_type: 'Material Issue',
-			transaction_date: new Date().toISOString().slice(0, 10),
+			doctype: 'Stock Entry',
+			stock_entry_type: 'Material Issue',
+			purpose: 'Material Issue',
 			company: defaults.value.company,
 			project_cost_center: projectCostCenter.value,
 			items: rows.value.map((r) => ({
@@ -240,8 +253,8 @@ async function submit() {
 				uom: r.uom,
 				stock_uom: r.stock_uom,
 				conversion_factor: r.conversion_factor,
-				schedule_date: new Date().toISOString().slice(0, 10),
-				warehouse: r.warehouse,
+				s_warehouse: r.s_warehouse,
+				cost_center: projectCostCenter.value,
 			})),
 		})
 		clearDraft(draftKey.value)

@@ -7,9 +7,9 @@
 		<div v-else-if="doc">
 			<div class="mb-3 flex items-center justify-between">
 				<h3 class="text-base font-semibold text-gray-900">{{ doc.name }}</h3>
-				<StatusBadge :status="doc.status" />
+				<StatusBadge status="Submitted" />
 			</div>
-			<p class="mb-1 text-xs text-gray-400">{{ doc.transaction_date }} · {{ doc.company }}</p>
+			<p class="mb-1 text-xs text-gray-400">{{ doc.posting_date }} · {{ doc.company }}</p>
 			<p v-if="doc.project_cost_center" class="mb-4 text-xs text-gray-500">
 				Project Cost Center: <span class="font-medium text-gray-700">{{ doc.project_cost_center }}</span>
 			</p>
@@ -28,7 +28,7 @@
 					</div>
 					<div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
 						<span>Qty: <strong class="text-gray-700">{{ row.qty }} {{ row.uom }}</strong></span>
-						<span>Warehouse: {{ row.warehouse }}</span>
+						<span>From: {{ row.s_warehouse }}</span>
 					</div>
 				</div>
 			</div>
@@ -52,7 +52,7 @@ const loading = ref(true)
 
 onMounted(async () => {
 	try {
-		doc.value = await getDoc('Material Request', props.name)
+		doc.value = await getDoc('Stock Entry', props.name)
 	} catch (e) {
 		toast.error(e.messages?.[0] || e.message || 'Failed to load material issue')
 	} finally {
